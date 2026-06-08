@@ -13,7 +13,8 @@ uint16_t adsFailCount = 0;
 const uint16_t ADS_FAIL_THRESHOLD = 5;
 
 // ===== DAC =====
-DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT, &Wire2);
+//DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT, &Wire2); old code, using Wire2 directly in constructor causes issues
+DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT);
 bool dacOK = false;
 uint16_t lastDACValue = -1;
 uint16_t dacFailCount = 0;
@@ -192,6 +193,19 @@ void initializeDevices() {
     Serial.println("Initialization complete!\n");
 }
 
+
+// Forward declarations
+void drawStaticScreen();
+void drawUpDownButtons();
+void drawGaugeBase(Slider& s);
+void drawGaugeDynamic(Slider& s);
+void handleTouch();
+void updateGauges();
+void updateDAC();
+void enterLowPower();
+void exitLowPower();
+
+
 // ==========================
 // SETUP
 // ==========================
@@ -275,11 +289,10 @@ void exitLowPower() {
 // ==========================
 // DAC UPDATE
 // ==========================
+
 void updateDAC() {
     if (!dacOK) return;
-
     float percent = constrain(sliders[1].value, 0.0, 100.0);
-
     uint16_t dacValue;
     if (percent == 0.0) {
         dacValue = 0;
@@ -287,24 +300,9 @@ void updateDAC() {
         dacValue = (int16_t)((percent / 100.0) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
         dacValue = constrain(dacValue, 0, 32767);
     }
-
-    // Only update DAC if value changed (reduces I2C traffic)
     if (dacValue != lastDACValue) {
-        for (uint8_t attempt = 0; attempt < 2; attempt++) {
-            if (GP8211S.setDACOutVoltage(dacValue) == 0) {
-                lastDACValue = dacValue;
-                dacFailCount = 0;
-                return;
-            }
-            delay(10);
-        }
-        
-        // Failed to set DAC
-        dacFailCount++;
-        if (dacFailCount >= DAC_FAIL_THRESHOLD) {
-            Serial.println("[WARN] DAC failures exceed threshold - output disabled");
-            dacOK = false;
-        }
+        GP8211S.setDACOutVoltage(dacValue);
+        lastDACValue = dacValue;
     }
 }
 
@@ -312,7 +310,8 @@ void updateDAC() {
 // STATIC UI
 // ==========================
 void drawStaticScreen() {
-    display.fillScreen(DARK_GREY);
+    //display.fillScreen(DARK_GREY);
+    display.fillScreen(BLACK);
 
     drawUpDownButtons();
 
@@ -411,7 +410,8 @@ void drawGaugeDynamic(Slider& s) {
     float angle = (s.displayedValue / s.maxValue) * 360.0 - 90;
     float rad = angle * PI / 180.0;
 
-    display.fillCircle(s.x, s.y, s.radius - 35, DARK_GREY);
+    //display.fillCircle(s.x, s.y, s.radius - 35, DARK_GREY); // old code, changed to black for better contrast
+    display.fillCircle(s.x, s.y, s.radius - 35, BLACK);
 
     int x2 = s.x + cos(rad) * (s.radius - 40);
     int y2 = s.y + sin(rad) * (s.radius - 40);
@@ -423,7 +423,8 @@ void drawGaugeDynamic(Slider& s) {
     snprintf(buffer, sizeof(buffer), "%.1f %s", s.displayedValue, s.unit);
 
     display.setTextSize(3);
-    display.setTextColor(WHITE, DARK_GREY);
+    //display.setTextColor(WHITE, DARK_GREY);    // old code, changed to black for better contrast
+    display.setTextColor(WHITE, BLACK);
     display.setCursor(s.x - 40, s.y);
     display.print(buffer);
 }
