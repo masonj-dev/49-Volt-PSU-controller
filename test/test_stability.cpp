@@ -116,13 +116,13 @@ void test_adc_read_validation(void) {
 // Test DAC output scaling (0-100% -> 0-6V)
 void test_dac_output_scaling(void) {
     float percent = 50.0;  // 50%
-    int16_t DAC_FULL_SCALE = 19650;
+    int16_t DAC_FULL_SCALE = 19520;
     int8_t DAC_ZERO_TRIM = -2;
     
     uint16_t dacValue = (int16_t)((percent / 100.0) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
     
-    // 50% should give us ~9823
-    TEST_ASSERT_UINT16_WITHIN(5, 9823, dacValue);
+    // 50% should give us ~9758
+    TEST_ASSERT_UINT16_WITHIN(5, 9758, dacValue);
 }
 
 // Test gauge smoothing

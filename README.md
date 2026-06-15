@@ -57,6 +57,5 @@ Monitor during initialization:
 Adjust for your specific setup:
 ```cpp
 #define DAC_ZERO_TRIM   -2      // Adjust for 0% accuracy
-#define DAC_FULL_SCALE  19650   // Adjust for 100% (6V) accuracy
+#define DAC_FULL_SCALE  19520   // Adjust for 100% (6V) accuracy
 ```
-

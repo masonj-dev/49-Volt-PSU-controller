@@ -56,7 +56,7 @@ const unsigned long TOUCH_DEBOUNCE_MS = 50;
 
 // Calibration
 #define DAC_ZERO_TRIM -2
-#define DAC_FULL_SCALE 19650
+#define DAC_FULL_SCALE 19520
 ```
 
 ### Safe Time Comparison

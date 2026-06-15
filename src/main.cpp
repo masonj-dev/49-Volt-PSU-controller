@@ -13,8 +13,9 @@ uint16_t adsFailCount = 0;
 const uint16_t ADS_FAIL_THRESHOLD = 5;
 
 // ===== DAC =====
-//DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT, &Wire2); old code, using Wire2 directly in constructor causes issues
-DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT);
+// DFRobot_GP8211S does not expose the I2C bus constructor, so use the
+// shared I2C driver class directly to bind the DAC to Wire2.
+DFRobot_GP8XXX_IIC GP8211S(RESOLUTION_15_BIT, DFGP8XXX_I2C_DEVICEADDR, &Wire2);
 bool dacOK = false;
 uint16_t lastDACValue = -1;
 uint16_t dacFailCount = 0;
@@ -94,7 +95,7 @@ int rawY_min = 6, rawY_max = 789;
 
 // Tunable calibration constants — adjust these to dial in your output
 #define DAC_ZERO_TRIM   -2      // compensates the 0% residual
-#define DAC_FULL_SCALE  19650   // tune until 100% = exactly 6.000V
+#define DAC_FULL_SCALE  19520   // tune until 100% = exactly 6.000V
 
 // ==========================
 // HELPER FUNCTIONS
