@@ -13,8 +13,14 @@ uint16_t adsFailCount = 0;
 const uint16_t ADS_FAIL_THRESHOLD = 5;
 
 // ===== DAC =====
-//DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT, &Wire2); old code, using Wire2 directly in constructor causes issues
-DFRobot_GP8211S GP8211S(RESOLUTION_15_BIT);
+class GP8211S_Wire2 : public DFRobot_GP8211S {
+public:
+    GP8211S_Wire2(TwoWire* pWire) : DFRobot_GP8211S(RESOLUTION_15_BIT) {
+        _pWire = pWire;
+    }
+};
+
+GP8211S_Wire2 GP8211S(&Wire2);
 bool dacOK = false;
 uint16_t lastDACValue = -1;
 uint16_t dacFailCount = 0;
@@ -93,8 +99,8 @@ int rawY_min = 6, rawY_max = 789;
 
 
 // Tunable calibration constants — adjust these to dial in your output
-#define DAC_ZERO_TRIM   -2      // compensates the 0% residual
-#define DAC_FULL_SCALE  19650   // tune until 100% = exactly 6.000V
+#define DAC_ZERO_TRIM   -5      // stronger trim to remove the 0% residual
+#define DAC_FULL_SCALE  19520   // slight trim so 100% lands closer to 6.000V
 
 // ==========================
 // HELPER FUNCTIONS
@@ -167,16 +173,20 @@ void initializeDevices() {
         adsOK = false;
     }
     
-    // Initialize DAC on Wire2
+    // Initialize I2C buses used by the DAC and ADC.
+    Wire.begin();
     Wire2.begin();
     delay(50);
+
+    // Initialize DAC on Wire2.
     if (GP8211S.begin() == 0) {
-        GP8211S.setDACOutRange(GP8211S.eOutputRange10V);
+        GP8211S.setDACOutRange(DFRobot_GP8XXX::eOutputRange10V);
+        GP8211S.setDACOutVoltage(0);  // safe default
+        delay(20);
         dacOK = true;
-        Serial.println("[OK] DAC (GP8211S) initialized");
-        GP8211S.setDACOutVoltage(0);  // Safe default
+        Serial.println("[OK] DAC (GP8211S) initialized on Wire2");
     } else {
-        Serial.println("[FAIL] DAC not found - output disabled");
+        Serial.println("[FAIL] DAC (GP8211S) not found on Wire2 - output disabled");
         dacOK = false;
     }
     
@@ -292,14 +302,11 @@ void exitLowPower() {
 
 void updateDAC() {
     if (!dacOK) return;
+
     float percent = constrain(sliders[1].value, 0.0, 100.0);
-    uint16_t dacValue;
-    if (percent == 0.0) {
-        dacValue = 0;
-    } else {
-        dacValue = (int16_t)((percent / 100.0) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
-        dacValue = constrain(dacValue, 0, 32767);
-    }
+    uint16_t dacValue = (uint16_t)round((percent / 100.0f) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
+    dacValue = constrain(dacValue, 0, DAC_FULL_SCALE);
+
     if (dacValue != lastDACValue) {
         GP8211S.setDACOutVoltage(dacValue);
         lastDACValue = dacValue;
