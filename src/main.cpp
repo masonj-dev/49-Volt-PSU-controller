@@ -168,16 +168,20 @@ void initializeDevices() {
         adsOK = false;
     }
     
-    // Initialize DAC on Wire2
+    // Initialize I2C buses used by the DAC and ADC.
+    Wire.begin();
     Wire2.begin();
     delay(50);
+
+    // Initialize DAC on Wire2.
     if (GP8211S.begin() == 0) {
-        GP8211S.setDACOutRange(GP8211S.eOutputRange10V);
+        GP8211S.setDACOutRange(DFRobot_GP8XXX::eOutputRange10V);
+        GP8211S.setDACOutVoltage(0);  // safe default
+        delay(20);
         dacOK = true;
-        Serial.println("[OK] DAC (GP8211S) initialized");
-        GP8211S.setDACOutVoltage(0);  // Safe default
+        Serial.println("[OK] DAC (GP8211S) initialized on Wire2");
     } else {
-        Serial.println("[FAIL] DAC not found - output disabled");
+        Serial.println("[FAIL] DAC (GP8211S) not found on Wire2 - output disabled");
         dacOK = false;
     }
     
@@ -293,14 +297,11 @@ void exitLowPower() {
 
 void updateDAC() {
     if (!dacOK) return;
+
     float percent = constrain(sliders[1].value, 0.0, 100.0);
-    uint16_t dacValue;
-    if (percent == 0.0) {
-        dacValue = 0;
-    } else {
-        dacValue = (int16_t)((percent / 100.0) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
-        dacValue = constrain(dacValue, 0, 32767);
-    }
+    uint16_t dacValue = (uint16_t)round((percent / 100.0f) * DAC_FULL_SCALE) + DAC_ZERO_TRIM;
+    dacValue = constrain(dacValue, 0, DAC_FULL_SCALE);
+
     if (dacValue != lastDACValue) {
         GP8211S.setDACOutVoltage(dacValue);
         lastDACValue = dacValue;
